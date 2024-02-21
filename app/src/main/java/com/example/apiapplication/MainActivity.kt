@@ -1,5 +1,6 @@
 package com.example.apiapplication
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -13,90 +14,49 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 
-//apikey = BuildConfig.MY_KEY 엥 안됨
 class MainActivity : AppCompatActivity() {
-    val apikey = BuildConfig.MY_KEY
-    lateinit var binding : ActivityMainBinding
-    private val dataList = mutableListOf<PillInfo.Body.Item?>()
+    //val apikey = BuildConfig.MY_KEY
+    private val binding by lazy{ActivityMainBinding.inflate(layoutInflater)}
+    private val adapter by lazy {Adapter(dataList)}
+    private val dataList = mutableListOf<Item?>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.recyclerview.adapter = adapter
         binding.recyclerview.layoutManager = LinearLayoutManager(this)
-        binding.recyclerview.adapter = MyAdapter(dataList)
-        binding.btnData.setOnClickListener{
-            pillRequest()
-        }
+        binding.btnData.setOnClickListener{ pillRequest() }
     }
     fun pillRequest() {
         //1.Retrofit 객체 초기화
         val gson = GsonBuilder().setLenient().create()
         val retrofit = Retrofit.Builder()
             .baseUrl("https://apis.data.go.kr/")
-            .addConverterFactory(ScalarsConverterFactory.create())
+            .addConverterFactory(ScalarsConverterFactory.create()) // 스칼라 변환기 추가
             .addConverterFactory(GsonConverterFactory.create(gson)) //gson 넣을지 말지
             .build()
         //2. 서비스 객체 생성
-        //val apiService: PillService = retrofit.create(PillService::class.java)
-        val pillService:PillService? = retrofit.create(PillService::class.java)
+        val pillService:PillService = retrofit.create(PillService::class.java)
         //3. Call 객체 생성
-        //val pillname = 입력값
-/*        val pillCall = apiService.getpillinfo(
-            apikey,
-            "타이레놀",
-            "json"
-        )
-        if (!dataList.isEmpty()) {
+        val apiKey = "Cf%2FfmKfKPh4xVEzDeyvrjXkWpf3w%2BBEWgMkulFHU4JDbTxGMJYlzDH1QeKWI%2FAqtRIib8w02NBybR0vZXHgUPA%3D%3D"
+        val pillCall = pillService.getInfo("타이레놀","","","","1","50","",apiKey)
+        if (dataList.isNotEmpty()) {
             dataList.clear()
         }
-        pillCall.enqueue(object : Callback<PillData> {
-            override fun onResponse(call: Call<PillData>, response: Response<PillData>) {
-                val data = response.body()
-                val pillinfo = data?.body?.items
-                Log.d("Allyak", "통신여부코드: "+response.code())
-                if(response.isSuccessful()) {
-                    Log.d("Allyak", "성공 코드: "+response.code())
-                    if (!pillinfo.isNullOrEmpty()) {
-                        pillinfo?.let { info ->
+        pillCall.enqueue(object : Callback<PillInfo>{
+                override fun onResponse(call: Call<PillInfo>, response: Response<PillInfo>) {
+                    val data = response.body()
+                    val pillList = data?.body?.items
+                    if (!pillList.isNullOrEmpty()) {
+                        pillList.let { info ->
                             info.forEach {
                                 dataList.add(it)
                             }
                         }
-                        (binding.recyclerview.adapter as MyAdapter).notifyDataSetChanged()
-                    }
-                }else{
-                    Log.d("Allyak", "실패 코드: "+response.code())
-                }
-            }
-            override fun onFailure(call: Call<PillData>, t: Throwable) {
-                Log.d("Allyak", "실패")
-                call.cancel()
-            }
-        })*/
-        if (!dataList.isEmpty()) {
-            dataList.clear()
-        }
-        pillService?.getInfo(apikey, "json", "타이레놀")
-            ?.enqueue(object : Callback<PillInfo>{
-                override fun onResponse(call: Call<PillInfo>, response: Response<PillInfo>) {
-                    val pillList = response.body()?.body?.items
-                    Log.d("Allyak", "통신여부코드: " + response.code())
-                    if (response.isSuccessful()) {
-                        Log.d("Allyak", "성공 코드: " + response.code())
-                        if (!pillList.isNullOrEmpty()) {
-                            pillList?.let { info ->
-                                info.forEach {
-                                    dataList.add(it)
-                                }
-                            }
-                            (binding.recyclerview.adapter as MyAdapter).notifyDataSetChanged()
-                        }
-                    } else {
-                        Log.d("Allyak", "실패 코드: " + response.code())
+                        adapter.notifyDataSetChanged()
                     }
                 }
                 override fun onFailure(call: Call<PillInfo>, t: Throwable) {
-                    Log.d("AllyakE", t.message!!)
+                    Log.d("AllyakE", t.message.toString())
                 }
             })
     }

@@ -8,7 +8,6 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 android {
     namespace 'com.example.apiapplication'
     compileSdk 34
-
     defaultConfig {
         applicationId "com.example.apiapplication"
         minSdk 24
@@ -37,7 +36,7 @@ android {
     }
     buildFeatures {
         viewBinding true
-        buildConfig true
+        buildConfig true //숨긴 키 사용 가능
     }
 }
 
@@ -61,6 +60,8 @@ dependencies {
     //glide
     implementation 'com.github.bumptech.glide:glide:4.12.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
+    // load images from URL
+    implementation 'com.squareup.picasso:picasso:2.71828'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
