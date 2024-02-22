@@ -19,14 +19,20 @@ class MainActivity : AppCompatActivity() {
     private val binding by lazy{ActivityMainBinding.inflate(layoutInflater)}
     private val adapter by lazy {Adapter(dataList)}
     private val dataList = mutableListOf<Item?>()
+    private var currentCall: Call<PillInfo>? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         binding.recyclerview.adapter = adapter
         binding.recyclerview.layoutManager = LinearLayoutManager(this)
-        binding.btnData.setOnClickListener{ pillRequest() }
+        binding.btnData.setOnClickListener{
+            if (currentCall == null || currentCall?.isExecuted == true) {
+                val name = binding.searchPill.text.toString()
+                pillRequest(name)
+            }
+        }
     }
-    fun pillRequest() {
+    fun pillRequest(name : String) {
         //1.Retrofit 객체 초기화
         val gson = GsonBuilder().setLenient().create()
         val retrofit = Retrofit.Builder()
@@ -38,25 +44,36 @@ class MainActivity : AppCompatActivity() {
         val pillService:PillService = retrofit.create(PillService::class.java)
         //3. Call 객체 생성
         val apiKey = "Cf%2FfmKfKPh4xVEzDeyvrjXkWpf3w%2BBEWgMkulFHU4JDbTxGMJYlzDH1QeKWI%2FAqtRIib8w02NBybR0vZXHgUPA%3D%3D"
-        val pillCall = pillService.getInfo("타이레놀","","","","1","50","",apiKey)
+        val pillCall = pillService.getInfo(name,"","","","1","50","",apiKey)
+        currentCall = pillCall
         if (dataList.isNotEmpty()) {
             dataList.clear()
         }
         pillCall.enqueue(object : Callback<PillInfo>{
                 override fun onResponse(call: Call<PillInfo>, response: Response<PillInfo>) {
-                    val data = response.body()
-                    val pillList = data?.body?.items
-                    if (!pillList.isNullOrEmpty()) {
-                        pillList.let { info ->
-                            info.forEach {
-                                dataList.add(it)
+                    currentCall = null
+                    if (response.isSuccessful){
+                        val data = response.body()
+                        val pillList = data?.body?.items
+                        if (!pillList.isNullOrEmpty()) {
+                            pillList.let { info ->
+                                info.forEach {
+                                    dataList.add(it)
+                                }
                             }
+                            adapter.notifyDataSetChanged()
                         }
-                        adapter.notifyDataSetChanged()
+                        Log.d("JSON_Response", response.body().toString())
+                    }
+                    else{
+                        // 실패한 응답 처리
+                        Log.e("JSON_Response", "Response not successful: ${response.code()}")
+                        Log.e("JSON_Response", "Error body: ${response.errorBody()?.string()}")
                     }
                 }
                 override fun onFailure(call: Call<PillInfo>, t: Throwable) {
-                    Log.d("AllyakE", t.message.toString())
+                    currentCall = null
+                    Log.e("API_Request_Failure", "Error: ${t.message}", t)
                 }
             })
     }
